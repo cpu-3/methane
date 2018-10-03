@@ -34,7 +34,6 @@ module decoder
      output reg auipc,
      output reg jal,
      output reg jalr,
-     output reg jalr,
      output reg beq,
      output reg bne,
      output reg blt,
@@ -65,9 +64,9 @@ module decoder
      output reg xor_,
      output reg srl,
      output reg sra,
-     output reg or,
-     output reg and_,
- )
+     output reg or_,
+     output reg and_
+ );
     wire r_type;
     wire [6:0] opcode;
     assign opcode = inst_code[6:0];
@@ -98,8 +97,8 @@ module decoder
 
         imm <= i_type ? {{21{inst_code[31]}}, inst_code[30:20]} :
              s_type ? {{21{inst_code[31]}}, inst_code[30:25], inst_code[11:7]} :
-             b_type ? {{20{inst_code[31]}}, inst_code[7], inst_code[30:25], inst_code[11:8], 1'b0}
-             u_type ? {inst_code[31:12], 12'd0}
+             b_type ? {{20{inst_code[31]}}, inst_code[7], inst_code[30:25], inst_code[11:8], 1'b0} :
+             u_type ? {inst_code[31:12], 12'd0} :
              j_type ? {{12{inst_code[31]}}, inst_code[19:12], inst_code[20], inst_code[30:12], 1'b0} : 32'd0;
 
         lui   <= opcode == 7'b0110111;
@@ -141,7 +140,7 @@ module decoder
         xor_ <= (opcode == 7'b0110011) && (funct3 == 3'b011);
         srl  <= (opcode == 7'b0110011) && (funct3 == 3'b100);
         sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101);
-        or   <= (opcode == 7'b0110011) && (funct3 == 3'b110);
+        or_   <= (opcode == 7'b0110011) && (funct3 == 3'b110);
         and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
     end
 endmodule
@@ -149,7 +148,6 @@ endmodule
 typedef enum reg [2:0] {
     s_wait, s_inst_fetch, s_inst_decode, s_wait_write, s_inst_exec
 } s_inst;
-
 
 
 module core
