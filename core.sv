@@ -19,55 +19,61 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 
+interface instif;
+  reg lui;
+  reg auipc;
+  reg jal;
+  reg jalr;
+  reg beq;
+  reg bne;
+  reg blt;
+  reg bge;
+  reg bltu;
+  reg bgeu;
+  reg bbgeu;
+  reg lb;
+  reg lh;
+  reg lw;
+  reg lbu;
+  reg lhu;
+  reg sb;
+  reg sh;
+  reg sw;
+  reg addi;
+  reg slti;
+  reg sltiu;
+  reg xori;
+  reg ori;
+  reg andi;
+  reg slli;
+  reg srli;
+  reg srai;
+  reg add;
+  reg sub;
+  reg sll;
+  reg slt;
+  reg sltu;
+  reg xor_;
+  reg srl;
+  reg sra;
+  reg or_;
+  reg and_;
+endinterface
+
 module decoder
  (
      input wire clk,
      input rstn,
      input wire [31:0] inst_code,
 
-     output wire [4:0] rd,
-     output wire [4:0] rs1,
-     output wire [4:0] rs2,
+     output reg [4:0] rd,
+     output reg [4:0] rs1,
+     output reg [4:0] rs2,
      output reg [31:0] imm,
 
-     output reg lui,
-     output reg auipc,
-     output reg jal,
-     output reg jalr,
-     output reg jalr,
-     output reg beq,
-     output reg bne,
-     output reg blt,
-     output reg bge,
-     output reg bltu,
-     output reg bgeu,
-     output reg lb,
-     output reg lh,
-     output reg lw,
-     output reg lbu,
-     output reg sb,
-     output reg sh,
-     output reg sw,
-     output reg addi,
-     output reg slti,
-     output reg sltiu,
-     output reg xori,
-     output reg ori,
-     output reg andi,
-     output reg slli,
-     output reg srli,
-     output reg srai,
-     output reg add,
-     output reg sub,
-     output reg sll,
-     output reg slt,
-     output reg sltu,
-     output reg xor_,
-     output reg srl,
-     output reg sra,
-     output reg or,
-     output reg and_,
- )
+     instif inst
+
+ );
     wire r_type;
     wire [6:0] opcode;
     assign opcode = inst_code[6:0];
@@ -98,59 +104,125 @@ module decoder
 
         imm <= i_type ? {{21{inst_code[31]}}, inst_code[30:20]} :
              s_type ? {{21{inst_code[31]}}, inst_code[30:25], inst_code[11:7]} :
-             b_type ? {{20{inst_code[31]}}, inst_code[7], inst_code[30:25], inst_code[11:8], 1'b0}
-             u_type ? {inst_code[31:12], 12'd0}
+             b_type ? {{20{inst_code[31]}}, inst_code[7], inst_code[30:25], inst_code[11:8], 1'b0} :
+             u_type ? {inst_code[31:12], 12'd0} :
              j_type ? {{12{inst_code[31]}}, inst_code[19:12], inst_code[20], inst_code[30:12], 1'b0} : 32'd0;
 
-        lui   <= opcode == 7'b0110111;
-        auipc <= opcode == 7'b1101111;
-        jalr  <= opcode == 7'b1100111;
+        inst.lui   <= opcode == 7'b0110111;
+        inst.auipc <= opcode == 7'b1101111;
+        inst.jal   <= opcode == 7'b1101111;
+        inst.jalr  <= opcode == 7'b1100111;
 
-        beq   <= (opcode == 7'b1100011) && (funct3 == 3'b000);
-        bne   <= (opcode == 7'b1100011) && (funct3 == 3'b001);
-        blt   <= (opcode == 7'b1100011) && (funct3 == 3'b100);
-        bge   <= (opcode == 7'b1100011) && (funct3 == 3'b101);
-        bltu  <= (opcode == 7'b1100011) && (funct3 == 3'b110);
-        bbgeu <= (opcode == 7'b1100011) && (funct3 == 3'b110);
+        inst.beq   <= (opcode == 7'b1100011) && (funct3 == 3'b000);
+        inst.bne   <= (opcode == 7'b1100011) && (funct3 == 3'b001);
+        inst.blt   <= (opcode == 7'b1100011) && (funct3 == 3'b100);
+        inst.bge   <= (opcode == 7'b1100011) && (funct3 == 3'b101);
+        inst.bltu  <= (opcode == 7'b1100011) && (funct3 == 3'b110);
+        inst.bbgeu <= (opcode == 7'b1100011) && (funct3 == 3'b110);
 
-        lb  <= (opcode == 7'b0000011) && (funct3 == 3'b000);
-        lh  <= (opcode == 7'b0000011) && (funct3 == 3'b001);
-        lw  <= (opcode == 7'b0000011) && (funct3 == 3'b010);
-        lbu <= (opcode == 7'b0000011) && (funct3 == 3'b100);
-        lhu <= (opcode == 7'b0000011) && (funct3 == 3'b101);
+        inst.lb  <= (opcode == 7'b0000011) && (funct3 == 3'b000);
+        inst.lh  <= (opcode == 7'b0000011) && (funct3 == 3'b001);
+        inst.lw  <= (opcode == 7'b0000011) && (funct3 == 3'b010);
+        inst.lbu <= (opcode == 7'b0000011) && (funct3 == 3'b100);
+        inst.lhu <= (opcode == 7'b0000011) && (funct3 == 3'b101);
 
-        sb  <= (opcode == 7'b0100011) && (funct3 == 3'b000);
-        sh  <= (opcode == 7'b0100011) && (funct3 == 3'b001);
-        sw  <= (opcode == 7'b0100011) && (funct3 == 3'b010);
+        inst.sb  <= (opcode == 7'b0100011) && (funct3 == 3'b000);
+        inst.sh  <= (opcode == 7'b0100011) && (funct3 == 3'b001);
+        inst.sw  <= (opcode == 7'b0100011) && (funct3 == 3'b010);
 
-        addi  <= (opcode == 7'b0010011) && (funct3 == 3'b000);
-        slti  <= (opcode == 7'b0010011) && (funct3 == 3'b010);
-        sltiu <= (opcode == 7'b0010011) && (funct3 == 3'b011);
-        xori  <= (opcode == 7'b0010011) && (funct3 == 3'b100);
-        ori   <= (opcode == 7'b0010011) && (funct3 == 3'b110);
-        andi  <= (opcode == 7'b0010011) && (funct3 == 3'b111);
+        inst.addi  <= (opcode == 7'b0010011) && (funct3 == 3'b000);
+        inst.slti  <= (opcode == 7'b0010011) && (funct3 == 3'b010);
+        inst.sltiu <= (opcode == 7'b0010011) && (funct3 == 3'b011);
+        inst.xori  <= (opcode == 7'b0010011) && (funct3 == 3'b100);
+        inst.ori   <= (opcode == 7'b0010011) && (funct3 == 3'b110);
+        inst.andi  <= (opcode == 7'b0010011) && (funct3 == 3'b111);
 
-        slli <= (opcode == 7'b0010011) && (funct3 == 3'b001);
-        srli <= (opcode == 7'b0010011) && (funct3 == 3'b101) && (funct7 == 7'b0000000);
-        srai <= (opcode == 7'b0010011) && (funct3 == 3'b101) && (funct7 == 7'b0100000);
+        inst.slli <= (opcode == 7'b0010011) && (funct3 == 3'b001);
+        inst.srli <= (opcode == 7'b0010011) && (funct3 == 3'b101) && (funct7 == 7'b0000000);
+        inst.srai <= (opcode == 7'b0010011) && (funct3 == 3'b101) && (funct7 == 7'b0100000);
 
-        add  <= (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0000000);
-        sub  <= (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0100000);
-        sll  <= (opcode == 7'b0110011) && (funct3 == 3'b001);
-        sltu <= (opcode == 7'b0110011) && (funct3 == 3'b010);
-        xor_ <= (opcode == 7'b0110011) && (funct3 == 3'b011);
-        srl  <= (opcode == 7'b0110011) && (funct3 == 3'b100);
-        sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101);
-        or   <= (opcode == 7'b0110011) && (funct3 == 3'b110);
-        and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
+        inst.add  <= (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0000000);
+        inst.sub  <= (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0100000);
+        inst.sll  <= (opcode == 7'b0110011) && (funct3 == 3'b001);
+        inst.sltu <= (opcode == 7'b0110011) && (funct3 == 3'b010);
+        inst.xor_ <= (opcode == 7'b0110011) && (funct3 == 3'b011);
+        inst.srl  <= (opcode == 7'b0110011) && (funct3 == 3'b100);
+        inst.sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101);
+        inst.or_   <= (opcode == 7'b0110011) && (funct3 == 3'b110);
+        inst.and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
     end
 endmodule
 
+
 typedef enum reg [2:0] {
-    s_wait, s_inst_fetch, s_inst_decode, s_wait_write, s_inst_exec
+    s_wait, s_inst_fetch, s_inst_decode, s_inst_write, s_inst_exec
 } s_inst;
 
+typedef enum reg [4:0] {
+    s_alu_add, s_alu_sub, s_alu_xor, s_alu_shl, s_alu_shr, s_alu_eq, s_alu_lts, s_alu_ltu, s_alu_or, s_alu_and
+} s_alu;
 
+
+module register
+    (
+        input wire clk,
+        input wire rstn,
+        
+        input wire [4:0] rd_idx,
+        input wire rd_enable,
+        input wire [31:0] data,
+        
+        input wire [4:0] rs1_idx,
+        output reg [31:0] rs1,
+        input wire [4:0] rs2_idx,
+        output reg [31:0] rs2
+    );
+    reg [31:0] iregs[32];
+ 
+    always @(posedge clk) begin
+        if (~rstn) begin
+        end else begin            
+            rs1 <= iregs[rs1_idx];
+            rs2 <= iregs[rs2_idx];
+            if (rd_enable) begin
+                iregs[rs1_idx] <= data;
+            end
+        end
+    end
+endmodule
+
+module alu 
+ (
+    input wire clk,
+    input wire rstn,
+    input wire [31:0] src1,
+    input wire [31:0] src2,
+    output reg [31:0] result,
+    instif inst
+ );
+    always @(posedge clk) begin
+        if (~rstn) begin
+        end else begin
+            result <= (inst.add | inst.addi) ? src1 + src2 : 
+                      (inst.sub)             ? src1 - src2 :
+                      (inst.slti | inst.slt) ? $signed(src1) < $signed(src2) :
+                      (inst.sltiu | inst.sltu) ? src1 < src2 :
+                      (inst.xori | inst.xor_) ? src1 ^ src2:
+                      (inst.ori | inst.or_) ? src1 | src2:
+                      (inst.andi | inst.and_) ? src1 & src2:
+                      (inst.slli | inst.sll) ? src1 << src2:
+                      (inst.srli | inst.srl) ? src1 >> src2:
+                      (inst.srai | inst.sra) ? $signed(src1) >>> $signed(src2):
+                      (inst.beq) ? src1 == src2:
+                      (inst.bne) ? src1 != src2:
+                      (inst.blt) ? $signed(src1) < $signed(src2):
+                      (inst.bge) ? $signed(src1) >= $signed(src2):
+                      (inst.bltu) ? src1 < src2:
+                      (inst.bgeu) ? src1 >= src2:
+                      32'd0;
+        end
+    end 
+endmodule
 
 module core
    #( parameter REG_SIZE = 32 )
@@ -162,23 +234,43 @@ module core
     output wire led1
     );
 
-    reg [33:0] counter;
-    reg [31:0] status_register;
+    reg [33:0] clock_counter;
+    reg [31:0] debug_status_register;
     reg [31:0] instruction;
 
     s_inst state;
 
-    reg [31:0] iregs[32];
     reg [31:0] fregs[32];
 
-    assign led0 = counter[25];
+    assign led0 = clock_counter[25];
     assign led1 = 1;
 
     localparam ds_illegal_inst = 32'b1;
     localparam ds_illegal_state = 32'b10;
 
     // TODO: reduce imms to one regs
-
+    instif inst;
+    reg [4:0] rd;
+    reg rd_enable;
+    reg [4:0] rs1;
+    reg [4:0] rs2;
+    reg [31:0] imm;
+    reg [31:0] src1;
+    reg [31:0] src2;
+    reg [31:0] result;
+    reg [31:0] alu_result;
+    
+    reg [31:0] pc;
+    decoder DECODER(.clk(clk), .rstn(rstn), .rd(rd), .rs1(rs1), .rs2(rs2), .imm(imm), .inst(inst));
+    register REGISTER(.clk(clk), .rstn(rstn), .rd_idx(rd), .rd_enable(rd_enable), .rs1_idx(rs1), .rs2_idx(rs2), .data(result), .rs1(src1), .rs2(src2));
+    alu ALU(.clk(clk), .rstn(rstn), .src1(src1), .src2(src2), .result(result));
+    // counts up clock and changes state
+    
+    assign pc = pc + (inst.jalr ? src1 : (inst.jal  ? imm : 32'd4));
+    assign result = inst.lui ? (imm << 12) : 
+                    inst.auipc ? (pc + (imm << 12)) :
+                    (inst.addi | inst.slti | inst.xori | inst.ori | inst.andi | inst.slli | inst.srli | inst.srai | inst.add | inst.sub | inst.sll
+                    | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? alu_result : 32'd0;
     always @(posedge clk) begin
         if (~rstn) begin
             clock_counter <= 32'd0;
@@ -188,15 +280,15 @@ module core
             clock_counter <= clock_counter + 1;
             if (state == s_wait) begin
             end else if (state == s_inst_fetch) begin
-                state <= s_inst_decode
+                state <= s_inst_decode;
             end else if (state == s_inst_decode) begin
                 state <= s_inst_exec;
             end else if (state == s_inst_exec) begin
                 state <= s_inst_write;
             end else if (state == s_inst_write) begin
                 state <= s_inst_fetch;
-            end else
-                debug_status_register <= status_register | ds_illegal_state;
+            end else begin
+                debug_status_register <= debug_status_register | ds_illegal_state;
             end
         end
     end
