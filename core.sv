@@ -71,8 +71,47 @@ module decoder
      output reg [4:0] rs2,
      output reg [31:0] imm,
 
+<<<<<<< HEAD
      instif inst
 
+=======
+     output reg lui,
+     output reg auipc,
+     output reg jal,
+     output reg jalr,
+     output reg beq,
+     output reg bne,
+     output reg blt,
+     output reg bge,
+     output reg bltu,
+     output reg bgeu,
+     output reg lb,
+     output reg lh,
+     output reg lw,
+     output reg lbu,
+     output reg sb,
+     output reg sh,
+     output reg sw,
+     output reg addi,
+     output reg slti,
+     output reg sltiu,
+     output reg xori,
+     output reg ori,
+     output reg andi,
+     output reg slli,
+     output reg srli,
+     output reg srai,
+     output reg add,
+     output reg sub,
+     output reg sll,
+     output reg slt,
+     output reg sltu,
+     output reg xor_,
+     output reg srl,
+     output reg sra,
+     output reg or_,
+     output reg and_
+>>>>>>> cc055ece148af6599cdb48dd4007170d5aebc222
  );
     wire r_type;
     wire [6:0] opcode;
@@ -108,6 +147,7 @@ module decoder
              u_type ? {inst_code[31:12], 12'd0} :
              j_type ? {{12{inst_code[31]}}, inst_code[19:12], inst_code[20], inst_code[30:12], 1'b0} : 32'd0;
 
+<<<<<<< HEAD
         inst.lui   <= opcode == 7'b0110111;
         inst.auipc <= opcode == 7'b1101111;
         inst.jal   <= opcode == 7'b1101111;
@@ -150,6 +190,49 @@ module decoder
         inst.sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101);
         inst.or_   <= (opcode == 7'b0110011) && (funct3 == 3'b110);
         inst.and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
+=======
+        lui   <= opcode == 7'b0110111;
+        auipc <= opcode == 7'b1101111;
+        jalr  <= opcode == 7'b1100111;
+
+        beq   <= (opcode == 7'b1100011) && (funct3 == 3'b000);
+        bne   <= (opcode == 7'b1100011) && (funct3 == 3'b001);
+        blt   <= (opcode == 7'b1100011) && (funct3 == 3'b100);
+        bge   <= (opcode == 7'b1100011) && (funct3 == 3'b101);
+        bltu  <= (opcode == 7'b1100011) && (funct3 == 3'b110);
+        bbgeu <= (opcode == 7'b1100011) && (funct3 == 3'b110);
+
+        lb  <= (opcode == 7'b0000011) && (funct3 == 3'b000);
+        lh  <= (opcode == 7'b0000011) && (funct3 == 3'b001);
+        lw  <= (opcode == 7'b0000011) && (funct3 == 3'b010);
+        lbu <= (opcode == 7'b0000011) && (funct3 == 3'b100);
+        lhu <= (opcode == 7'b0000011) && (funct3 == 3'b101);
+
+        sb  <= (opcode == 7'b0100011) && (funct3 == 3'b000);
+        sh  <= (opcode == 7'b0100011) && (funct3 == 3'b001);
+        sw  <= (opcode == 7'b0100011) && (funct3 == 3'b010);
+
+        addi  <= (opcode == 7'b0010011) && (funct3 == 3'b000);
+        slti  <= (opcode == 7'b0010011) && (funct3 == 3'b010);
+        sltiu <= (opcode == 7'b0010011) && (funct3 == 3'b011);
+        xori  <= (opcode == 7'b0010011) && (funct3 == 3'b100);
+        ori   <= (opcode == 7'b0010011) && (funct3 == 3'b110);
+        andi  <= (opcode == 7'b0010011) && (funct3 == 3'b111);
+
+        slli <= (opcode == 7'b0010011) && (funct3 == 3'b001);
+        srli <= (opcode == 7'b0010011) && (funct3 == 3'b101) && (funct7 == 7'b0000000);
+        srai <= (opcode == 7'b0010011) && (funct3 == 3'b101) && (funct7 == 7'b0100000);
+
+        add  <= (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0000000);
+        sub  <= (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0100000);
+        sll  <= (opcode == 7'b0110011) && (funct3 == 3'b001);
+        sltu <= (opcode == 7'b0110011) && (funct3 == 3'b010);
+        xor_ <= (opcode == 7'b0110011) && (funct3 == 3'b011);
+        srl  <= (opcode == 7'b0110011) && (funct3 == 3'b100);
+        sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101);
+        or_   <= (opcode == 7'b0110011) && (funct3 == 3'b110);
+        and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
+>>>>>>> cc055ece148af6599cdb48dd4007170d5aebc222
     end
 endmodule
 
@@ -191,6 +274,7 @@ module register
     end
 endmodule
 
+<<<<<<< HEAD
 module alu 
  (
     input wire clk,
@@ -224,6 +308,8 @@ module alu
     end 
 endmodule
 
+=======
+>>>>>>> cc055ece148af6599cdb48dd4007170d5aebc222
 module core
    #( parameter REG_SIZE = 32 )
     (
