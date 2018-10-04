@@ -72,6 +72,7 @@ module decoder
      output reg [31:0] imm,
 
      instif inst
+
  );
     wire r_type;
     wire [6:0] opcode;
@@ -248,7 +249,7 @@ module core
     localparam ds_illegal_state = 32'b10;
 
     // TODO: reduce imms to one regs
-    instif inst;
+    instif inst();
     reg [4:0] rd;
     reg rd_enable;
     reg [4:0] rs1;
@@ -262,7 +263,7 @@ module core
     reg [31:0] pc;
     decoder DECODER(.clk(clk), .rstn(rstn), .rd(rd), .rs1(rs1), .rs2(rs2), .imm(imm), .inst(inst));
     register REGISTER(.clk(clk), .rstn(rstn), .rd_idx(rd), .rd_enable(rd_enable), .rs1_idx(rs1), .rs2_idx(rs2), .data(result), .rs1(src1), .rs2(src2));
-    alu ALU(.clk(clk), .rstn(rstn), .src1(src1), .src2(src2), .result(result));
+    alu ALU(.clk(clk), .rstn(rstn), .src1(src1), .src2(src2), .result(result), .inst(inst));
     // counts up clock and changes state
     
     assign pc = pc + (inst.jalr ? src1 : (inst.jal  ? imm : 32'd4));
