@@ -181,6 +181,11 @@ module register
  
     always @(posedge clk) begin
         if (~rstn) begin
+            iregs[0] <= 32'd0;
+            iregs[1] <= 32'd0;
+            iregs[2] <= 32'd0;
+            iregs[3] <= 32'd0;
+            iregs[4] <= 32'd0;
         end else begin            
             rs1 <= iregs[rs1_idx];
             rs2 <= iregs[rs2_idx];
@@ -234,22 +239,22 @@ module core
     
     input reg [31:0] instr,
     output reg [31:0] pc,
-    output reg instr_we,
-    output reg instr_in,
+    output reg [3:0]instr_we,
+    output reg [31:0]instr_in,
     
 
     output reg [31:0] din,
     output reg [31:0] addr,
     input reg [31:0] dout,
-    output reg data_we
+    output reg [3:0]data_we
 
     );
 
-    reg [33:0] clock_counter;
-    reg [31:0] debug_status_register;
-    reg [31:0] instruction;
+    reg [33:0] clock_counter = 34'd0;
+    reg [31:0] debug_status_register = 32'd0;
+    reg [31:0] instruction = 32'd0;
 
-    s_inst state;
+    s_inst state = s_wait;
 
     reg [31:0] fregs[32];
 
@@ -276,19 +281,36 @@ module core
     alu ALU(.clk(clk), .rstn(rstn), .src1(src1), .src2(src2), .result(alu_result), .inst(inst));
     // counts up clock and changes state
     
-    assign pc = pc + (inst.jalr ? src1 : (inst.jal  ? imm : 32'd4));
     assign result = inst.lui ? (imm << 12) : 
                     inst.auipc ? (pc + (imm << 12)) :
                     (inst.addi | inst.slti | inst.xori | inst.ori | inst.andi | inst.slli | inst.srli | inst.srai | inst.add | inst.sub | inst.sll
                     | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? alu_result : 32'd0;
+    
+    // update pc
+    always @(posedge clk) begin 
+        if (~rstn) begin
+            pc <= 32'd0;
+        end else if (state == s_inst_exec) begin
+            if (inst.jalr) begin
+                pc <= pc + src1;
+            end else if (inst.jal) begin
+                pc <= pc + imm;
+            end else begin
+                pc <= 32'd4;
+            end
+        end else begin
+        end
+    end
+    
     always @(posedge clk) begin
         if (~rstn) begin
             clock_counter <= 32'd0;
             state <= s_wait;
             debug_status_register <= 32'b0;
-            pc <= 32'd0;
             instr_we <= 1'd0;
             data_we <= 1'd0;
+            addr <= 32'd0;
+            dout <= 32'd0;
         end else begin
             clock_counter <= clock_counter + 1;
             if (state == s_wait) begin

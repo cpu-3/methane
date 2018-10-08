@@ -27,12 +27,12 @@ module core_wrapper(
     output wire led1,
     input wire [31:0] instr,
     output wire [31:0] pc,
-    output wire instr_we,
-    output wire instr_in,
+    output wire [3:0]instr_we,
+    output wire [31:0]instr_in,
     output wire [31:0] din,
     output wire [31:0] addr,
     input wire [31:0] dout,
-    output wire data_we
+    output wire [3:0]data_we
     );
     core core(clk, rstn, led0, led1, instr, pc, instr_we, instr_in, din, addr, dout, data_we);
 
