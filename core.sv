@@ -64,15 +64,15 @@ module decoder
  (
      input wire clk,
      input rstn,
-     input wire [31:0] inst_code,
 
      output reg [4:0] rd,
      output reg [4:0] rs1,
      output reg [4:0] rs2,
      output reg [31:0] imm,
 
-     instif inst
-
+     instif inst,
+     
+     input reg [31:0] inst_code
  );
     wire r_type;
     wire [6:0] opcode;
@@ -229,9 +229,20 @@ module core
     (
     input wire clk,
     input wire rstn,
-    input reg [31:0] instr,
     output wire led0,
-    output wire led1
+    output wire led1,
+    
+    input reg [31:0] instr,
+    output reg [31:0] pc,
+    output reg instr_we,
+    output reg instr_in,
+    
+
+    output reg [31:0] din,
+    output reg [31:0] addr,
+    input reg [31:0] dout,
+    output reg data_we
+
     );
 
     reg [33:0] clock_counter;
@@ -260,10 +271,9 @@ module core
     reg [31:0] result;
     reg [31:0] alu_result;
     
-    reg [31:0] pc;
     decoder DECODER(.clk(clk), .rstn(rstn), .rd(rd), .rs1(rs1), .rs2(rs2), .imm(imm), .inst(inst));
     register REGISTER(.clk(clk), .rstn(rstn), .rd_idx(rd), .rd_enable(rd_enable), .rs1_idx(rs1), .rs2_idx(rs2), .data(result), .rs1(src1), .rs2(src2));
-    alu ALU(.clk(clk), .rstn(rstn), .src1(src1), .src2(src2), .result(result), .inst(inst));
+    alu ALU(.clk(clk), .rstn(rstn), .src1(src1), .src2(src2), .result(alu_result), .inst(inst));
     // counts up clock and changes state
     
     assign pc = pc + (inst.jalr ? src1 : (inst.jal  ? imm : 32'd4));
@@ -276,6 +286,9 @@ module core
             clock_counter <= 32'd0;
             state <= s_wait;
             debug_status_register <= 32'b0;
+            pc <= 32'd0;
+            instr_we <= 1'd0;
+            data_we <= 1'd0;
         end else begin
             clock_counter <= clock_counter + 1;
             if (state == s_wait) begin
