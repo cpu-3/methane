@@ -30,7 +30,6 @@ interface instif;
   reg bge;
   reg bltu;
   reg bgeu;
-  reg bbgeu;
   reg lb;
   reg lh;
   reg lw;
@@ -78,9 +77,9 @@ module decoder
     wire [6:0] opcode;
     assign opcode = inst_code[6:0];
     wire [2:0] funct3;
-    assign funct3 = inst_code[2:0];
+    assign funct3 = inst_code[14:12];
     wire [6:0] funct7;
-    assign funct7 = inst_code[6:0];
+    assign funct7 = inst_code[31:25];
 
     assign r_type = (inst_code[6:5] == 2'b01) && (inst_code[4:2] == 3'b100);
     wire i_type;
@@ -95,7 +94,7 @@ module decoder
     wire u_type;
     assign u_type = ((inst_code[6:5] == 2'b01) || (inst_code[6:5] == 2'b00)) && (inst_code[4:2] == 3'b101);
     wire j_type;
-    assign j_type = ((inst_code[6:5] == 2'b01) || (inst_code[6:5] == 2'b00)) && (inst_code[4:2] == 3'b101);
+    assign j_type = ((inst_code[6:5] == 2'b11) && (inst_code[4:2] == 3'b011));
 
     always @(posedge clk) begin
         rd <= (r_type | i_type | u_type | j_type) ? inst_code[11:7] : 5'd0;
@@ -106,10 +105,10 @@ module decoder
              s_type ? {{21{inst_code[31]}}, inst_code[30:25], inst_code[11:7]} :
              b_type ? {{20{inst_code[31]}}, inst_code[7], inst_code[30:25], inst_code[11:8], 1'b0} :
              u_type ? {inst_code[31:12], 12'd0} :
-             j_type ? {{12{inst_code[31]}}, inst_code[19:12], inst_code[20], inst_code[30:12], 1'b0} : 32'd0;
+             j_type ? {{12{inst_code[31]}}, inst_code[19:12], inst_code[20], inst_code[30:21], 1'b0} : 32'd0;
 
         inst.lui   <= opcode == 7'b0110111;
-        inst.auipc <= opcode == 7'b1101111;
+        inst.auipc <= opcode == 7'b0010111;
         inst.jal   <= opcode == 7'b1101111;
         inst.jalr  <= opcode == 7'b1100111;
 
@@ -118,7 +117,7 @@ module decoder
         inst.blt   <= (opcode == 7'b1100011) && (funct3 == 3'b100);
         inst.bge   <= (opcode == 7'b1100011) && (funct3 == 3'b101);
         inst.bltu  <= (opcode == 7'b1100011) && (funct3 == 3'b110);
-        inst.bbgeu <= (opcode == 7'b1100011) && (funct3 == 3'b110);
+        inst.bgeu  <= (opcode == 7'b1100011) && (funct3 == 3'b110);
 
         inst.lb  <= (opcode == 7'b0000011) && (funct3 == 3'b000);
         inst.lh  <= (opcode == 7'b0000011) && (funct3 == 3'b001);
@@ -144,10 +143,11 @@ module decoder
         inst.add  <= (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0000000);
         inst.sub  <= (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0100000);
         inst.sll  <= (opcode == 7'b0110011) && (funct3 == 3'b001);
-        inst.sltu <= (opcode == 7'b0110011) && (funct3 == 3'b010);
-        inst.xor_ <= (opcode == 7'b0110011) && (funct3 == 3'b011);
-        inst.srl  <= (opcode == 7'b0110011) && (funct3 == 3'b100);
-        inst.sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101);
+        inst.slt  <= (opcode == 7'b0110011) && (funct3 == 3'b010);
+        inst.sltu <= (opcode == 7'b0110011) && (funct3 == 3'b011);
+        inst.xor_ <= (opcode == 7'b0110011) && (funct3 == 3'b100);
+        inst.srl  <= (opcode == 7'b0110011) && (funct3 == 3'b101) && (funct7 == 7'b0000000);
+        inst.sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101) && (funct7 == 7'b0000000);
         inst.or_   <= (opcode == 7'b0110011) && (funct3 == 3'b110);
         inst.and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
     end
@@ -186,11 +186,36 @@ module register
             iregs[2] <= 32'd0;
             iregs[3] <= 32'd0;
             iregs[4] <= 32'd0;
-        end else begin            
-            rs1 <= iregs[rs1_idx];
-            rs2 <= iregs[rs2_idx];
+            iregs[5] <= 32'd0;
+            iregs[6] <= 32'd0;
+            iregs[7] <= 32'd0;
+            iregs[8] <= 32'd0;
+            iregs[9] <= 32'd0;
+            iregs[10] <= 32'd0;
+            iregs[11] <= 32'd0;
+            iregs[12] <= 32'd0;
+            iregs[13] <= 32'd0;
+            iregs[14] <= 32'd0;
+            iregs[15] <= 32'd0;
+            
+            rs1 <= 32'd0;
+            rs2 <= 32'd0;
+        end else begin
+            if (rs1_idx == 0) begin
+                rs1 <= 0;
+            end else begin
+                rs1 <= iregs[rs1_idx];
+            end 
+            if (rs2_idx == 0) begin
+                rs2 <= 0;
+            end else begin
+                rs2 <= iregs[rs2_idx];
+            end            
+            
             if (rd_enable) begin
-                iregs[rs1_idx] <= data;
+                if (rd_idx != 0) begin 
+                    iregs[rd_idx] <= data;
+                end
             end
         end
     end
@@ -207,6 +232,7 @@ module alu
  );
     always @(posedge clk) begin
         if (~rstn) begin
+            result <= 32'd0;
         end else begin
             result <= (inst.add | inst.addi) ? src1 + src2 : 
                       (inst.sub)             ? src1 - src2 :
@@ -237,24 +263,36 @@ module core
     output wire led0,
     output wire led1,
     
-    input reg [31:0] instr,
+    input reg [31:0] _instr,
     output reg [31:0] pc,
-    output reg [3:0]instr_we,
-    output reg [31:0]instr_in,
+    output reg [3:0] instr_we,
+    output reg [31:0] _instr_in,
     
 
-    output reg [31:0] din,
+    output reg [31:0] _din,
     output reg [31:0] addr,
-    input reg [31:0] dout,
+    input reg [31:0] _dout,
     output reg [3:0]data_we
 
     );
+    // endian
+    wire [31:0] instr;
+    assign instr = {_instr[7:0], _instr[15:8], _instr[23:16], _instr[31:24]};
+    reg [31:0] instr_in;
+    assign _instr_in = {instr_in[7:0], instr_in[15:8], instr_in[23:16], instr_in[31:24]};
+    reg [31:0] din;
+    assign _din = {din[7:0], din[15:8], din[23:16], din[31:24]};
+    wire [31:0] dout;
+    assign dout = {_dout[7:0], _dout[15:8], _dout[23:16], _dout[31:24]};
+
 
     reg [33:0] clock_counter = 34'd0;
     reg [31:0] debug_status_register = 32'd0;
     reg [31:0] instruction = 32'd0;
 
     s_inst state = s_wait;
+    
+    reg wait_for_memory = 1'd0;
 
     reg [31:0] fregs[32];
 
@@ -275,16 +313,19 @@ module core
     reg [31:0] src2;
     reg [31:0] result;
     reg [31:0] alu_result;
+    reg [31:0] load_result;
     
-    decoder DECODER(.clk(clk), .rstn(rstn), .rd(rd), .rs1(rs1), .rs2(rs2), .imm(imm), .inst(inst));
+    decoder DECODER(.clk(clk), .rstn(rstn), .rd(rd), .rs1(rs1), .rs2(rs2), .imm(imm), .inst(inst), .inst_code(instr));
     register REGISTER(.clk(clk), .rstn(rstn), .rd_idx(rd), .rd_enable(rd_enable), .rs1_idx(rs1), .rs2_idx(rs2), .data(result), .rs1(src1), .rs2(src2));
     alu ALU(.clk(clk), .rstn(rstn), .src1(src1), .src2(src2), .result(alu_result), .inst(inst));
     // counts up clock and changes state
     
-    assign result = inst.lui ? (imm << 12) : 
+    assign result = state != s_inst_write ? result :
+                    inst.lui ? (imm << 12) : 
                     inst.auipc ? (pc + (imm << 12)) :
                     (inst.addi | inst.slti | inst.xori | inst.ori | inst.andi | inst.slli | inst.srli | inst.srai | inst.add | inst.sub | inst.sll
-                    | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? alu_result : 32'd0;
+                    | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? alu_result :
+                    (inst.lb | inst.lh | inst.lw) ? load_result : 32'd0;
     
     // update pc
     always @(posedge clk) begin 
@@ -296,9 +337,51 @@ module core
             end else if (inst.jal) begin
                 pc <= pc + imm;
             end else begin
-                pc <= 32'd4;
+                pc <= pc + 32'd4;
             end
         end else begin
+        end
+    end
+       
+    // load/store   
+    always @(posedge clk) begin
+        addr <= src1 + imm;
+        if (^rstn) begin
+            load_result <= 32'd0;
+            din <= 32'd0;
+            data_we <= 4'b0;
+        end else if (state == s_inst_exec) begin
+            wait_for_memory <= 1'b1;
+            if (inst.sb) begin
+                din <= src2;
+                data_we <= 4'b0001;
+            end else if (inst.sh) begin
+                din <= src2;
+                data_we <= 4'b0011;
+            end else if (inst.sw) begin
+                din <= src2;
+                data_we <= 4'b1111;      
+            end else if (inst.lb) begin
+                load_result <= {{25{dout[7]}}, dout[6:0]};  
+            end else if (inst.lh) begin
+                load_result <= {{17{dout[15]}}, dout[4:0]};
+            end else if (inst.lw) begin
+                load_result <= dout;
+            end
+        end else if(wait_for_memory) begin
+            wait_for_memory <= 1'b0;
+        end else if (state == s_inst_write) begin
+            data_we <= 4'b0000;
+        end
+    end
+    
+    always @(posedge clk) begin
+        if (~rstn) begin
+            rd_enable <= 1'b0;
+        end else if (state == s_inst_exec) begin
+            rd_enable <= 1'b1;
+        end else begin
+            rd_enable <= 1'b0;
         end
     end
     
@@ -310,10 +393,10 @@ module core
             instr_we <= 1'd0;
             data_we <= 1'd0;
             addr <= 32'd0;
-            dout <= 32'd0;
         end else begin
             clock_counter <= clock_counter + 1;
             if (state == s_wait) begin
+                state <= s_inst_fetch;
             end else if (state == s_inst_fetch) begin
                 state <= s_inst_decode;
             end else if (state == s_inst_decode) begin
