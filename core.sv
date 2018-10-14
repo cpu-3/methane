@@ -117,7 +117,7 @@ module decoder
         inst.blt   <= (opcode == 7'b1100011) && (funct3 == 3'b100);
         inst.bge   <= (opcode == 7'b1100011) && (funct3 == 3'b101);
         inst.bltu  <= (opcode == 7'b1100011) && (funct3 == 3'b110);
-        inst.bgeu  <= (opcode == 7'b1100011) && (funct3 == 3'b110);
+        inst.bgeu  <= (opcode == 7'b1100011) && (funct3 == 3'b111);
 
         inst.lb  <= (opcode == 7'b0000011) && (funct3 == 3'b000);
         inst.lh  <= (opcode == 7'b0000011) && (funct3 == 3'b001);
@@ -148,7 +148,7 @@ module decoder
         inst.xor_ <= (opcode == 7'b0110011) && (funct3 == 3'b100);
         inst.srl  <= (opcode == 7'b0110011) && (funct3 == 3'b101) && (funct7 == 7'b0000000);
         inst.sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101) && (funct7 == 7'b0000000);
-        inst.or_   <= (opcode == 7'b0110011) && (funct3 == 3'b110);
+        inst.or_  <= (opcode == 7'b0110011) && (funct3 == 3'b110);
         inst.and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
     end
 endmodule
@@ -182,10 +182,12 @@ module register
     assign rs1 = rs1_idx == 0 ? 32'd0 : iregs[rs1_idx];
     assign rs2 = rs2_idx == 0 ? 32'd0 : iregs[rs2_idx];
     
+    assign iregs[0] = 32'd0;
     generate 
         genvar i;
         for (i = 1; i < 32; i = i + 1) begin
-            assign iregs[i] = rd_enable && (rd_idx == i) ? data : iregs[i];
+            assign iregs[i] = ~rstn ? 32'd0 : 
+                               rd_enable && (rd_idx == i) ? data : iregs[i];
         end
     endgenerate
 
@@ -292,7 +294,8 @@ module core
     alu ALU(.clk(clk), .rstn(rstn), .src1(alu_src1), .src2(alu_src2), .result(alu_result), .inst(inst));
     
     assign alu_src1 = src1;
-    assign alu_src2 = (inst.add | inst.sub | inst.sll | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? src2 :
+    assign alu_src2 = (inst.add | inst.sub | inst.sll | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_ |
+                       inst.beq | inst.bne | inst.blt | inst.bge | inst.bltu | inst.bgeu) ? src2 :
                        imm;
     
     always @(posedge clk) begin
@@ -315,7 +318,7 @@ module core
             result <= load_result;
             rd_enable <= 1'b1;
         end else if (inst.jal | inst.jalr) begin
-            result <= pc + 4;
+            result <= pc + 32'd4;
             rd_enable <= 1'b1;
         end else begin
             result <= 32'd0;
@@ -331,6 +334,12 @@ module core
                 pc <= src1 + imm;
             end else if (inst.jal) begin
                 pc <= pc + imm;
+            end else if (inst.beq | inst.bne | inst.blt | inst.bge | inst.bltu | inst.bgeu) begin
+                if (alu_result == 32'd0) begin
+                    pc <= pc + 32'd4;
+                end else begin
+                    pc <= pc + imm;
+                end
             end else begin
                 pc <= pc + 32'd4;
             end
