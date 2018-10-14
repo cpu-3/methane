@@ -295,20 +295,31 @@ module core
     assign alu_src2 = (inst.add | inst.sub | inst.sll | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? src2 :
                        imm;
     
-    assign result = state != s_inst_write ? result :
-                    inst.lui ? imm : 
-                    inst.auipc ? pc + imm :
-                    (inst.addi | inst.slti | inst.xori | inst.ori | inst.andi | inst.slli | inst.srli | inst.srai | inst.add | inst.sub | inst.sll
-                    | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? alu_result :
-                    (inst.lb | inst.lh | inst.lw) ? load_result : 32'd0;
-    
+    always @(posedge clk) begin
+        if (~rstn) begin 
+            result <= 32'd0;
+        end else if (state != s_inst_write) begin
+        end else if (inst.lui) begin
+            result <= imm;
+        end else if (inst.auipc) begin
+            result <= pc + imm;
+        end else if (inst.addi | inst.slti | inst.xori | inst.ori | inst.andi | inst.slli | inst.srli | inst.srai | inst.add | inst.sub | inst.sll
+                            | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) begin
+            result <= alu_result;
+        end else if (inst.lb | inst.lh | inst.lw) begin
+            result <= load_result;
+        end else begin
+            result <= 32'd0;
+        end
+    end
+        
     // update pc
     always @(posedge clk) begin 
         if (~rstn) begin
             pc <= 32'd0;
         end else if (state == s_inst_write) begin
             if (inst.jalr) begin
-                pc <= pc + src1;
+                pc <= src1 + imm;
             end else if (inst.jal) begin
                 pc <= pc + imm;
             end else begin
