@@ -185,7 +185,7 @@ module register
     generate 
         genvar i;
         for (i = 1; i < 32; i = i + 1) begin
-            assign iregs[i] = rd_idx == i ? data : iregs[i];
+            assign iregs[i] = rd_enable && (rd_idx == i) ? data : iregs[i];
         end
     endgenerate
 
@@ -298,16 +298,25 @@ module core
     always @(posedge clk) begin
         if (~rstn) begin 
             result <= 32'd0;
+            rd_enable <= 1'b0;
         end else if (state != s_inst_write) begin
+            rd_enable <= 1'b0;
         end else if (inst.lui) begin
             result <= imm;
+            rd_enable <= 1'b1;
         end else if (inst.auipc) begin
             result <= pc + imm;
+            rd_enable <= 1'b1;
         end else if (inst.addi | inst.slti | inst.xori | inst.ori | inst.andi | inst.slli | inst.srli | inst.srai | inst.add | inst.sub | inst.sll
                             | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) begin
             result <= alu_result;
+            rd_enable <= 1'b1;
         end else if (inst.lb | inst.lh | inst.lw) begin
             result <= load_result;
+            rd_enable <= 1'b1;
+        end else if (inst.jal | inst.jalr) begin
+            result <= pc + 4;
+            rd_enable <= 1'b1;
         end else begin
             result <= 32'd0;
         end
@@ -332,7 +341,7 @@ module core
     // load/store   
     always @(posedge clk) begin
         addr <= src1 + imm;
-        if (^rstn) begin
+        if (~rstn) begin
             load_result <= 32'd0;
             din <= 32'd0;
             data_we <= 4'b0;
@@ -358,16 +367,7 @@ module core
             wait_for_memory <= 1'b0;
         end else if (state == s_inst_write) begin
             data_we <= 4'b0000;
-        end
-    end
-    
-    always @(posedge clk) begin
-        if (~rstn) begin
-            rd_enable <= 1'b0;
-        end else if (state == s_inst_exec) begin
-            rd_enable <= 1'b1;
-        end else begin
-            rd_enable <= 1'b0;
+        end else begin 
         end
     end
     
