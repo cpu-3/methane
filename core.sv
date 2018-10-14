@@ -264,7 +264,7 @@ module core
 
     s_inst state = s_wait;
     
-    reg wait_for_memory = 1'd0;
+    reg wait_for_memory;
 
     reg [31:0] fregs[32];
 
@@ -347,15 +347,15 @@ module core
         end
     end
        
-    // load/store   
+    // load/store
+    assign addr = src1 + imm;   
     always @(posedge clk) begin
-        addr <= src1 + imm;
+        //addr <= src1 + imm;
         if (~rstn) begin
             load_result <= 32'd0;
             din <= 32'd0;
             data_we <= 4'b0;
         end else if (state == s_inst_exec) begin
-            wait_for_memory <= 1'b1;
             if (inst.sb) begin
                 din <= src2;
                 data_we <= 4'b0001;
@@ -372,11 +372,8 @@ module core
             end else if (inst.lw) begin
                 load_result <= dout;
             end
-        end else if(wait_for_memory) begin
-            wait_for_memory <= 1'b0;
-        end else if (state == s_inst_write) begin
+        end else if (state == s_inst_fetch) begin
             data_we <= 4'b0000;
-        end else begin 
         end
     end
     
@@ -387,7 +384,7 @@ module core
             debug_status_register <= 32'b0;
             instr_we <= 1'd0;
             data_we <= 1'd0;
-            addr <= 32'd0;
+            wait_for_memory <= 1'b0;
         end else begin
             clock_counter <= clock_counter + 1;
             if (state == s_wait) begin
@@ -397,7 +394,15 @@ module core
             end else if (state == s_inst_decode) begin
                 state <= s_inst_exec;
             end else if (state == s_inst_exec) begin
-                state <= s_inst_write;
+                if (wait_for_memory) begin
+                    wait_for_memory <= 1'b0;
+                    state <= s_inst_write;
+                end else if (inst.lb | inst.lh | inst.lw) begin
+                        wait_for_memory <= 1'b1;
+                        state <= s_inst_exec;         
+                end else begin
+                    state <= s_inst_write;
+                end
             end else if (state == s_inst_write) begin
                 state <= s_inst_fetch;
             end else begin
