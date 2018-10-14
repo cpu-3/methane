@@ -178,47 +178,17 @@ module register
         output reg [31:0] rs2
     );
     reg [31:0] iregs[32];
- 
-    always @(posedge clk) begin
-        if (~rstn) begin
-            iregs[0] <= 32'd0;
-            iregs[1] <= 32'd0;
-            iregs[2] <= 32'd0;
-            iregs[3] <= 32'd0;
-            iregs[4] <= 32'd0;
-            iregs[5] <= 32'd0;
-            iregs[6] <= 32'd0;
-            iregs[7] <= 32'd0;
-            iregs[8] <= 32'd0;
-            iregs[9] <= 32'd0;
-            iregs[10] <= 32'd0;
-            iregs[11] <= 32'd0;
-            iregs[12] <= 32'd0;
-            iregs[13] <= 32'd0;
-            iregs[14] <= 32'd0;
-            iregs[15] <= 32'd0;
-            
-            rs1 <= 32'd0;
-            rs2 <= 32'd0;
-        end else begin
-            if (rs1_idx == 0) begin
-                rs1 <= 0;
-            end else begin
-                rs1 <= iregs[rs1_idx];
-            end 
-            if (rs2_idx == 0) begin
-                rs2 <= 0;
-            end else begin
-                rs2 <= iregs[rs2_idx];
-            end            
-            
-            if (rd_enable) begin
-                if (rd_idx != 0) begin 
-                    iregs[rd_idx] <= data;
-                end
-            end
+    
+    assign rs1 = rs1_idx == 0 ? 32'd0 : iregs[rs1_idx];
+    assign rs2 = rs2_idx == 0 ? 32'd0 : iregs[rs2_idx];
+    
+    generate 
+        genvar i;
+        for (i = 1; i < 32; i = i + 1) begin
+            assign iregs[i] = rd_idx == i ? data : iregs[i];
         end
-    end
+    endgenerate
+
 endmodule
 
 module alu 
@@ -315,14 +285,19 @@ module core
     reg [31:0] alu_result;
     reg [31:0] load_result;
     
+    wire [31:0] alu_src1;
+    wire [31:0] alu_src2;
     decoder DECODER(.clk(clk), .rstn(rstn), .rd(rd), .rs1(rs1), .rs2(rs2), .imm(imm), .inst(inst), .inst_code(instr));
     register REGISTER(.clk(clk), .rstn(rstn), .rd_idx(rd), .rd_enable(rd_enable), .rs1_idx(rs1), .rs2_idx(rs2), .data(result), .rs1(src1), .rs2(src2));
-    alu ALU(.clk(clk), .rstn(rstn), .src1(src1), .src2(src2), .result(alu_result), .inst(inst));
-    // counts up clock and changes state
+    alu ALU(.clk(clk), .rstn(rstn), .src1(alu_src1), .src2(alu_src2), .result(alu_result), .inst(inst));
+    
+    assign alu_src1 = src1;
+    assign alu_src2 = (inst.add | inst.sub | inst.sll | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? src2 :
+                       imm;
     
     assign result = state != s_inst_write ? result :
-                    inst.lui ? (imm << 12) : 
-                    inst.auipc ? (pc + (imm << 12)) :
+                    inst.lui ? imm : 
+                    inst.auipc ? pc + imm :
                     (inst.addi | inst.slti | inst.xori | inst.ori | inst.andi | inst.slli | inst.srli | inst.srai | inst.add | inst.sub | inst.sll
                     | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) ? alu_result :
                     (inst.lb | inst.lh | inst.lw) ? load_result : 32'd0;
@@ -331,7 +306,7 @@ module core
     always @(posedge clk) begin 
         if (~rstn) begin
             pc <= 32'd0;
-        end else if (state == s_inst_exec) begin
+        end else if (state == s_inst_write) begin
             if (inst.jalr) begin
                 pc <= pc + src1;
             end else if (inst.jal) begin
