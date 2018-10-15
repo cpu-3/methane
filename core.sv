@@ -57,6 +57,12 @@ interface instif;
   reg sra;
   reg or_;
   reg and_;
+  
+  wire inval;
+  assign inval = ~(lui | auipc | jal | jalr | beq | bne | blt | bge | bltu | bgeu | lb |
+            lh | lw | lbu | lhu | sb | sh | sw | addi | slti | sltiu | xori | ori | 
+            andi | slli | srli | srai | add | sub | sll | slt | sltu | xor_ | srl |
+            sra | or_ | and_); 
 endinterface
 
 module decoder
@@ -155,7 +161,7 @@ endmodule
 
 
 typedef enum reg [2:0] {
-    s_wait, s_inst_fetch, s_inst_decode, s_inst_write, s_inst_exec
+    s_wait, s_inst_fetch, s_inst_decode, s_inst_write, s_inst_exec, s_inst_inval
 } s_inst;
 
 typedef enum reg [4:0] {
@@ -232,8 +238,6 @@ module core
     (
     input wire clk,
     input wire rstn,
-    output wire led0,
-    output wire led1,
     
     input reg [31:0] _instr,
     output reg [31:0] pc,
@@ -267,9 +271,6 @@ module core
     reg wait_for_memory;
 
     reg [31:0] fregs[32];
-
-    assign led0 = clock_counter[25];
-    assign led1 = 1;
 
     localparam ds_illegal_inst = 32'b1;
     localparam ds_illegal_state = 32'b10;
@@ -383,11 +384,12 @@ module core
             state <= s_wait;
             debug_status_register <= 32'b0;
             instr_we <= 1'd0;
-            data_we <= 1'd0;
             wait_for_memory <= 1'b0;
         end else begin
             clock_counter <= clock_counter + 1;
-            if (state == s_wait) begin
+            if (inst.inval) begin
+                state <= s_inst_inval;
+            end else if (state == s_wait) begin
                 state <= s_inst_fetch;
             end else if (state == s_inst_fetch) begin
                 state <= s_inst_decode;

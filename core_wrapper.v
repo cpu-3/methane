@@ -23,8 +23,6 @@
 module core_wrapper(
     input wire clk,
     input wire rstn,
-    output wire led0,
-    output wire led1,
     input wire [31:0] instr,
     output wire [31:0] pc,
     output wire [3:0]instr_we,
@@ -34,7 +32,7 @@ module core_wrapper(
     input wire [31:0] dout,
     output wire [3:0]data_we
     );
-    core core(clk, rstn, led0, led1, instr, pc, instr_we, instr_in, din, addr, dout, data_we);
+    core core(clk, rstn, instr, pc, instr_we, instr_in, din, addr, dout, data_we);
 
 endmodule
 
