@@ -189,11 +189,19 @@ module register
     assign rs2 = rs2_idx == 0 ? 32'd0 : iregs[rs2_idx];
     
     assign iregs[0] = 32'd0;
-    generate 
+    
+    generate
         genvar i;
         for (i = 1; i < 32; i = i + 1) begin
-            assign iregs[i] = ~rstn ? 32'd0 : 
-                               rd_enable && (rd_idx == i) ? data : iregs[i];
+            always @(posedge clk) begin
+                if (~rstn) begin
+                    iregs[i] <= 32'd0;
+                end else begin 
+                    if (rd_enable && i == rd_idx) begin
+                        iregs[i] <=  data;
+                    end
+                end
+            end
         end
     endgenerate
 

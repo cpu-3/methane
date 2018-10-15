@@ -47,7 +47,7 @@ module map(
     
     parameter led_addr = 32'h10008;
     
-    assign led = c_write_enable && c_addr == led_addr ? c_dout[7:0] : led_reg;
+    assign led = c_write_enable && (c_addr == led_addr) ? c_din[31:24] : led_reg;
     assign addr = c_addr == led_addr ? addr_reg : c_addr;
     assign write_enable = c_addr == led_addr ? write_enable_reg : c_write_enable;
     assign din = c_addr == led_addr ? din_reg : c_din;
