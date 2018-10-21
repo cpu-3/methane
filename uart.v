@@ -31,8 +31,8 @@ module uart_wrapper(
     // for uartlite
     output wire                      axi_awvalid,
     input wire                       axi_awready,
-    output wire [31:0]               axi_awaddr,
-    output reg [2:0]                 axi_awprot,
+    output wire [3:0]                axi_awaddr,
+    output reg [2:0]                  axi_awprot,
     // data write channel
     output wire                      axi_wvalid,
     input wire                       axi_wready,
@@ -50,7 +50,7 @@ module uart_wrapper(
     // read data channel
     input wire                       axi_rvalid,
     output reg                       axi_rready,
-    input wire [3:0]                axi_rdata,
+    input wire [31:0]                axi_rdata,
     input wire [1:0]                 axi_rresp,
 
     input wire                       clk,
