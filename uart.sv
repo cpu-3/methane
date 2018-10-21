@@ -19,6 +19,9 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+typedef enum reg [2:0] {
+    u_wait, u_read_status_transmit, u_transmit_data, u_read_status_receive, u_receive_data
+} s_uart;
 
 module uart (
     // interface
@@ -29,6 +32,7 @@ module uart (
     output reg rx_done,
     output reg tx_done,
     input  wire t_valid,
+    input  wire r_valid,
 
     // for uartlite
     output reg                       axi_awvalid,
@@ -57,16 +61,12 @@ module uart (
 
     input wire                       clk,
     input wire                       rstn);
-        
-    localparam s_wait = 3'b000;
-    localparam s_read_status = 3'b001;
-    localparam s_write_data  = 3'b010;
-    
+            
     localparam rx_fifo  = 4'h0;
     localparam tx_fifo  = 4'h4;
     localparam stat_reg = 4'h8;
     localparam ctrl_reg = 4'hc;
-    reg [2:0] transmit_status;
+    s_uart status;
     
     wire [7:0]rx_data;
     assign rx_data = axi_rdata[7:0];
@@ -78,18 +78,23 @@ module uart (
         if (~rstn) begin
             // always 0 (perhaps..)
             axi_arprot <= 3'b0;
+            tx_done <= 1'b0;
+        end else if(u_wait == status) begin
+            tx_done <= 1'b0;
             rx_done <= 1'b0;
-            tx_done <= 1'b0;
-        end else if(s_wait == transmit_status) begin
-            tx_done <= 1'b0;
             if (t_valid) begin
-                transmit_status <= s_read_status;
+                status <= u_read_status_transmit;
                 // first read status
                 axi_arvalid <= 1'b1;
                 axi_araddr <= stat_reg;            
                 axi_rready <= 1'b1;
+            end else if(r_valid) begin
+                status <= u_read_status_transmit;
+                axi_arvalid <= 1'b1;
+                axi_araddr <= stat_reg;            
+                axi_rready <= 1'b1;
             end
-        end else if (transmit_status == s_read_status) begin
+        end else if (status == u_read_status_transmit) begin
             if (axi_rvalid) begin
                  // if tx fifo is full then wait for a space
                  if(rx_data[3]) begin
@@ -109,37 +114,61 @@ module uart (
                     axi_wvalid <= 1'b1;
                     tx_data <= t_data;
                     
-                    transmit_status <= s_write_data;
+                    status <= u_transmit_data;
                  end
-            end else if (axi_arvalid) begin
+            end else if (axi_arready) begin
                  axi_arvalid <= 1'b0;
             end 
-        end else if (transmit_status == s_write_data) begin
+        end else if (status == u_read_status_receive) begin
+            if (axi_rvalid) begin
+                 // check if there is a data delivered.
+                 if (!rx_data[0]) begin // 1 is valid, 0 is empty (hoge)
+                     axi_arvalid <= 1'b1;
+                     axi_araddr <= stat_reg;
+                        
+                     axi_rready <= 1'b1;
+                 end else begin
+                 // there exists a data 
+                    axi_arvalid <= 1'b1;
+                    axi_rready <= 1'b1;
+                    axi_araddr <= rx_fifo;                        
+                    status <= u_receive_data;
+                 end
+            end else if (axi_arready) begin
+                axi_arvalid <= 1'b0;
+            end 
+        end else if (status == u_transmit_data) begin
             // after trasmission finishes, 
             // notifies tx_done to the sender  and wait for the next. 
             if (axi_awready && axi_wready) begin
                 axi_awvalid <= 1'b0;
                 axi_wvalid <= 1'b0;
-                transmit_status <= s_wait;
+                status <= u_wait;
                 tx_done <= 1'b1;
             end else if (axi_awready) begin
                 axi_awvalid <= 1'b0;
                 if (axi_wvalid == 1'b0) begin
-                    transmit_status <= s_wait;
+                    status <= u_wait;
                     tx_done <= 1'b1;
                 end
             end else if (axi_wready) begin
                 axi_wvalid <= 1'b0;
                 if (axi_awvalid == 1'b0) begin
-                    transmit_status <= s_wait;
+                    status <= u_wait;
                     tx_done <= 1'b1;
                 end
             end
+        end else if (status == u_receive_data) begin
+            if (axi_arready) begin
+                 axi_arvalid <= 1'b0;
+            end
+            if (axi_rvalid) begin
+                axi_rready <= 1'b0;
+                
+                rx_done <= 1'b1;
+                r_data <= rx_data;
+                status <= u_wait;
+            end
         end
     end
-    
-    // rx
-    always @(posedge clk) begin
-    end
-
 endmodule
