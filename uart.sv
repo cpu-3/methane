@@ -25,8 +25,7 @@ typedef enum reg [2:0] {
 
 module uart (
     // interface
-    output reg rx_ready,
-    output reg tx_ready,
+    output reg u_ready,
     output reg [7:0]r_data,
     input  wire [7:0]t_data,
     output reg rx_done,
@@ -46,7 +45,7 @@ module uart (
     output reg [3:0]                 axi_wstrb,
     // response channel
     input wire                       axi_bvalid,
-    output wire                      axi_bready,
+    output reg                       axi_bready,
     input wire [1:0]                 axi_bresp,
     // address read channel
     output reg                       axi_arvalid,
@@ -75,6 +74,12 @@ module uart (
     
     // tx
     always @(posedge clk) begin
+        if(axi_bvalid) begin 
+            axi_bready <= 1'b1;
+        end else begin
+            axi_bready <= 1'b0;
+        end
+    
         if (~rstn) begin
             // always 0 (perhaps..)
             axi_arprot <= 3'b0;
@@ -88,11 +93,13 @@ module uart (
                 axi_arvalid <= 1'b1;
                 axi_araddr <= stat_reg;            
                 axi_rready <= 1'b1;
+                u_ready <= 1'b0;
             end else if(r_valid) begin
                 status <= u_read_status_transmit;
                 axi_arvalid <= 1'b1;
                 axi_araddr <= stat_reg;            
                 axi_rready <= 1'b1;
+                u_ready <= 1'b0;
             end
         end else if (status == u_read_status_transmit) begin
             if (axi_rvalid) begin
@@ -145,17 +152,20 @@ module uart (
                 axi_wvalid <= 1'b0;
                 status <= u_wait;
                 tx_done <= 1'b1;
+                u_ready <= 1'b1;
             end else if (axi_awready) begin
                 axi_awvalid <= 1'b0;
                 if (axi_wvalid == 1'b0) begin
                     status <= u_wait;
                     tx_done <= 1'b1;
+                    u_ready <= 1'b1;
                 end
             end else if (axi_wready) begin
                 axi_wvalid <= 1'b0;
                 if (axi_awvalid == 1'b0) begin
                     status <= u_wait;
                     tx_done <= 1'b1;
+                    u_ready <= 1'b1;
                 end
             end
         end else if (status == u_receive_data) begin
@@ -168,6 +178,7 @@ module uart (
                 rx_done <= 1'b1;
                 r_data <= rx_data;
                 status <= u_wait;
+                u_ready <= 1'b1;
             end
         end
     end
