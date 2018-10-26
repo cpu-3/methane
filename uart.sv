@@ -57,6 +57,8 @@ module uart (
     output reg                       axi_rready,
     input wire [31:0]                axi_rdata,
     input wire [1:0]                 axi_rresp,
+    
+    output wire [7:0]                led,
 
     input wire                       clk,
     input wire                       rstn);
@@ -72,6 +74,9 @@ module uart (
     reg  [7:0]tx_data;
     assign axi_wdata = {24'd0, tx_data};
     
+    reg [7:0] led_r;
+    assign led = led_r;
+    
     // tx
     always @(posedge clk) begin
         if(axi_bvalid) begin 
@@ -84,6 +89,20 @@ module uart (
             // always 0 (perhaps..)
             axi_arprot <= 3'b0;
             tx_done <= 1'b0;
+            rx_done <= 1'b0;
+            axi_arvalid <= 1'b0;
+            axi_araddr <= stat_reg;
+            axi_rready <= 1'b0;
+            axi_wstrb <= 4'b0001;
+            axi_wvalid <= 1'b0;
+            axi_awaddr <= 4'b0;
+            axi_awvalid <= 1'b0;
+            
+            u_ready <= 1'b0;
+            status <= u_wait;
+            tx_data <= 8'b0;
+            r_data <= 8'b0;
+            led_r <= 8'b0;
         end else if(u_wait == status) begin
             tx_done <= 1'b0;
             rx_done <= 1'b0;
@@ -95,13 +114,17 @@ module uart (
                 axi_rready <= 1'b1;
                 u_ready <= 1'b0;
             end else if(r_valid) begin
-                status <= u_read_status_transmit;
+                status <= u_read_status_receive;
                 axi_arvalid <= 1'b1;
                 axi_araddr <= stat_reg;            
                 axi_rready <= 1'b1;
                 u_ready <= 1'b0;
+            end else begin
+                u_ready <= 1'b1;
             end
         end else if (status == u_read_status_transmit) begin
+            led_r <= rx_data;
+
             if (axi_rvalid) begin
                  // if tx fifo is full then wait for a space
                  if(rx_data[3]) begin
@@ -127,12 +150,14 @@ module uart (
                  axi_arvalid <= 1'b0;
             end 
         end else if (status == u_read_status_receive) begin
+            led_r <= rx_data;
+
             if (axi_rvalid) begin
                  // check if there is a data delivered.
-                 if (!rx_data[0]) begin // 1 is valid, 0 is empty (hoge)
+                 if (~rx_data[0]) begin // 1 is valid, 0 is empty (hoge)
                      axi_arvalid <= 1'b1;
                      axi_araddr <= stat_reg;
-                        
+                     
                      axi_rready <= 1'b1;
                  end else begin
                  // there exists a data 

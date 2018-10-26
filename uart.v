@@ -54,15 +54,17 @@ module uart_wrapper(
     output wire                       axi_rready,
     input wire [31:0]                axi_rdata,
     input wire [1:0]                 axi_rresp,
+    output wire [7:0]                led,
 
     input wire                       clk,
     input wire                       rstn);
-    uart(.u_ready(u_ready),
+    uart uart(.u_ready(u_ready),
          .r_data(r_data),
          .t_data(t_data),
          .tx_done(tx_done),
          .rx_done(rx_done),
          .t_valid(t_valid),
+         .r_valid(r_valid),
          .axi_awvalid(axi_awvalid),
          .axi_awready(axi_awready),
          .axi_awaddr(axi_awaddr),
@@ -82,6 +84,7 @@ module uart_wrapper(
          .axi_rready(axi_rready),
          .axi_rdata(axi_rdata),
          .axi_rresp(axi_rresp),
+         .led(led),
          .clk(clk),
          .rstn(rstn)
      );
