@@ -31,12 +31,23 @@ module map_wrapper(
     output wire [31:0] addr,
     output wire [3:0] write_enable,
     input  wire [31:0] dout,
-    
+
+    // to uart  
+    input  wire ready,
+    input  wire [7:0]r_data,
+    output wire [7:0]t_data,
+    output wire t_valid,
+    output wire r_valid,
+    input tx_done,
+    input rx_done,
+ 
     // from/to core
     input wire [31:0] c_din,
     input wire [31:0] c_addr,
     input wire [3:0] c_write_enable,
-    output wire [31:0] c_dout
+    output wire [31:0] c_dout,
+    output wire done,
+    input wire load
 
     );
     map map(
@@ -50,6 +61,15 @@ module map_wrapper(
         .c_din(c_din),
         .c_write_enable(c_write_enable),
         .c_dout(c_dout),
-        .c_addr(c_addr)
+        .c_addr(c_addr),
+        .done(done),
+        .ready(ready),
+        .r_data(r_data),
+        .t_data(t_data),
+        .t_valid(t_valid),
+        .r_valid(r_valid),
+        .tx_done(tx_done),
+        .rx_done(rx_done),
+        .load(load)
     );
 endmodule

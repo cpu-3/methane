@@ -37,7 +37,6 @@ module uart (
     output reg                       axi_awvalid,
     input wire                       axi_awready,
     output reg  [3:0]                axi_awaddr,
-    output reg [2:0]                 axi_awprot,
     // data write channel
     output reg                       axi_wvalid,
     input wire                       axi_wready,
@@ -51,15 +50,12 @@ module uart (
     output reg                       axi_arvalid,
     input wire                       axi_arready,
     output reg [3:0]                 axi_araddr,
-    output reg [2:0]                 axi_arprot,
     // read data channel
     input wire                       axi_rvalid,
     output reg                       axi_rready,
     input wire [31:0]                axi_rdata,
     input wire [1:0]                 axi_rresp,
     
-    output wire [7:0]                led,
-
     input wire                       clk,
     input wire                       rstn);
             
@@ -75,7 +71,7 @@ module uart (
     assign axi_wdata = {24'd0, tx_data};
     
     reg [7:0] led_r;
-    assign led = led_r;
+    //assign led = led_r;
     
     // tx
     always @(posedge clk) begin
@@ -87,7 +83,6 @@ module uart (
     
         if (~rstn) begin
             // always 0 (perhaps..)
-            axi_arprot <= 3'b0;
             tx_done <= 1'b0;
             rx_done <= 1'b0;
             axi_arvalid <= 1'b0;

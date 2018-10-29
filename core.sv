@@ -242,7 +242,6 @@ module alu
 endmodule
 
 module core
-   #( parameter REG_SIZE = 32 )
     (
     input wire clk,
     input wire rstn,
@@ -256,7 +255,10 @@ module core
     output reg [31:0] _din,
     output reg [31:0] addr,
     input reg [31:0] _dout,
-    output reg [3:0]data_we
+    output reg [3:0]data_we,
+    
+    input wire memory_done,
+    output wire load
 
     );
     // endian
@@ -306,6 +308,16 @@ module core
     assign alu_src2 = (inst.add | inst.sub | inst.sll | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_ |
                        inst.beq | inst.bne | inst.blt | inst.bge | inst.bltu | inst.bgeu) ? src2 :
                        imm;
+                       
+    reg load_r;
+    assign load = load_r;
+    
+    always @(posedge clk) begin
+        if (~rstn) begin 
+        end else if (state == s_inst_exec) begin
+            load_r <= inst.lb | inst.lh | inst.lw | inst.lbu | inst.lhu;
+        end
+    end
     
     always @(posedge clk) begin
         if (~rstn) begin 
@@ -323,7 +335,7 @@ module core
                             | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_) begin
             result <= alu_result;
             rd_enable <= 1'b1;
-        end else if (inst.lb | inst.lh | inst.lw) begin
+        end else if (inst.lb | inst.lh | inst.lw | inst.lbu | inst.lhu) begin
             result <= load_result;
             rd_enable <= 1'b1;
         end else if (inst.jal | inst.jalr) begin
@@ -405,8 +417,10 @@ module core
                 state <= s_inst_exec;
             end else if (state == s_inst_exec) begin
                 if (wait_for_memory) begin
-                    wait_for_memory <= 1'b0;
-                    state <= s_inst_write;
+                    if (memory_done) begin
+                        wait_for_memory <= 1'b0;
+                        state <= s_inst_write;
+                    end
                 end else if (inst.lb | inst.lh | inst.lw) begin
                         wait_for_memory <= 1'b1;
                         state <= s_inst_exec;         

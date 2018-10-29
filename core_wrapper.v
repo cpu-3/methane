@@ -23,16 +23,21 @@
 module core_wrapper(
     input wire clk,
     input wire rstn,
+
     input wire [31:0] instr,
     output wire [31:0] pc,
-    output wire [3:0]instr_we,
-    output wire [31:0]instr_in,
+    output wire [3:0] instr_we,
+    output wire [31:0] instr_in,
+
     output wire [31:0] din,
     output wire [31:0] addr,
     input wire [31:0] dout,
-    output wire [3:0]data_we
+    output wire [3:0]data_we,
+
+    input wire memory_done,
+    output wire load
     );
-    core core(clk, rstn, instr, pc, instr_we, instr_in, din, addr, dout, data_we);
+    core c(clk, rstn, instr, pc, instr_we, instr_in, din, addr, dout, data_we, memory_done, load);
 
 endmodule
 
