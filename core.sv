@@ -168,6 +168,16 @@ module decoder
         inst.or_  <= (opcode == 7'b0110011) && (funct3 == 3'b110);
         inst.and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
         
+        inst.fadd <= (opcode == 7'b1010011) && (funct7 == 7'b0000000);
+        inst.fsub <= (opcode == 7'b1010011) && (funct7 == 7'b0000100);
+        inst.fmul <= (opcode == 7'b1010011) && (funct7 == 7'b0001000);
+        inst.fdiv <= (opcode == 7'b1010011) && (funct7 == 7'b0001100);
+        inst.feq  <= (opcode == 7'b1010011) && (funct7 == 7'b1010000) && (funct3 == 3'b010);
+        inst.flt  <= (opcode == 7'b1010011) && (funct7 == 7'b1010000) && (funct3 == 3'b001);
+        inst.fle  <= (opcode == 7'b1010011) && (funct7 == 7'b1010000) && (funct3 == 3'b000);
+        
+        inst.fsw <= opcode == 7'b0100111;
+        inst.flw <= opcode == 7'b0000111;
     end
 endmodule
 
@@ -211,6 +221,42 @@ module register
                 end else begin 
                     if (rd_enable && i == rd_idx) begin
                         iregs[i] <=  data;
+                    end
+                end
+            end
+        end
+    endgenerate
+
+endmodule
+
+module fregister
+    (
+        input wire clk,
+        input wire rstn,
+        
+        input wire [4:0] rd_idx,
+        input wire rd_enable,
+        input wire [31:0] data,
+        
+        input wire [4:0] rs1_idx,
+        output reg [31:0] rs1,
+        input wire [4:0] rs2_idx,
+        output reg [31:0] rs2
+    );
+    reg [31:0] fregs[32];
+    
+    assign rs1 = fregs[rs1_idx];
+    assign rs2 = fregs[rs2_idx];
+    
+    generate
+        genvar i;
+        for (i = 1; i < 32; i = i + 1) begin
+            always @(posedge clk) begin
+                if (~rstn) begin
+                    fregs[i] <= 32'd0;
+                end else begin 
+                    if (rd_enable && i == rd_idx) begin
+                        fregs[i] <=  data;
                     end
                 end
             end
@@ -301,20 +347,29 @@ module core
     instif inst();
     reg [4:0] rd;
     reg rd_enable;
+    reg frd_enable;
     reg [4:0] rs1;
     reg [4:0] rs2;
     reg [31:0] imm;
     reg [31:0] src1;
     reg [31:0] src2;
+    reg [31:0] fsrc1;
+    reg [31:0] fsrc2;
+
     reg [31:0] result;
     reg [31:0] alu_result;
     reg [31:0] load_result;
+    reg [31:0] fpu_result;
     
     wire [31:0] alu_src1;
     wire [31:0] alu_src2;
+
     decoder DECODER(.clk(clk), .rstn(rstn), .rd(rd), .rs1(rs1), .rs2(rs2), .imm(imm), .inst(inst), .inst_code(instr));
     register REGISTER(.clk(clk), .rstn(rstn), .rd_idx(rd), .rd_enable(rd_enable), .rs1_idx(rs1), .rs2_idx(rs2), .data(result), .rs1(src1), .rs2(src2));
+    fregister FREGISTER(.clk(clk), .rstn(rstn), .rd_idx(rd), .rd_enable(frd_enable), .rs1_idx(rs1), .rs2_idx(rs2), .data(result), .rs1(fsrc1), .rs2(fsrc2));
+    
     alu ALU(.clk(clk), .rstn(rstn), .src1(alu_src1), .src2(alu_src2), .result(alu_result), .inst(inst));
+    fpu FPU(.clk(clk), .rstn(rstn), .src1(fsrc1), .src2(fsrc2), .result(fpu_result), .inst(inst));
     
     assign alu_src1 = src1;
     assign alu_src2 = (inst.add | inst.sub | inst.sll | inst.slt | inst.sltu | inst.xor_ | inst.srl | inst.sra  | inst.or_  | inst.and_ |
@@ -327,7 +382,7 @@ module core
     always @(posedge clk) begin
         if (~rstn) begin 
         end else if (state == s_inst_exec) begin
-            load_r <= inst.lb | inst.lh | inst.lw | inst.lbu | inst.lhu;
+            load_r <= inst.lb | inst.lh | inst.lw | inst.lbu | inst.lhu | inst.flw;
         end else begin
             load_r <= 1'b0;
         end
@@ -339,6 +394,7 @@ module core
             rd_enable <= 1'b0;
         end else if (state != s_inst_write) begin
             rd_enable <= 1'b0;
+            frd_enable <= 1'b0;
         end else if (inst.lui) begin
             result <= imm;
             rd_enable <= 1'b1;
@@ -355,6 +411,15 @@ module core
         end else if (inst.jal | inst.jalr) begin
             result <= pc + 32'd4;
             rd_enable <= 1'b1;
+        end else if (inst.feq | inst.fle | inst.flt) begin
+            result <= fpu_result;
+            rd_enable <= 1'b1;
+        end else if (inst.fadd | inst.fsub | inst.fmul | inst.fdiv) begin
+            result <= fpu_result;
+            frd_enable <= 1'b1;
+        end else if (inst.flw) begin
+            result <= load_result;
+            frd_enable <= 1'b1;
         end else begin
             result <= 32'd0;
         end
@@ -400,6 +465,9 @@ module core
             end else if (inst.sw) begin
                 din <= src2;
                 data_we <= 4'b1111;
+            end else if (inst.fsw) begin
+                din <= fsrc2;
+                data_we <= 4'b1111;
             end
         end else if (state == s_inst_mem) begin    
             data_we <= 4'b0000;
@@ -408,6 +476,8 @@ module core
             end else if (inst.lh) begin
                 load_result <= {{17{dout[15]}}, dout[14:0]};
             end else if (inst.lw) begin
+                load_result <= dout;
+            end else if (inst.flw) begin
                 load_result <= dout;
             end
         end else if (state != s_inst_exec) begin

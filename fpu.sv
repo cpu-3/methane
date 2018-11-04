@@ -42,10 +42,10 @@ module fpu(
     wire flt_result;
     wire fle_result;
     
-    fadd(src1, src2, fadd_result, fadd_ovf);
-    fsub(src1, src2, fsub_result, fsub_ovf);
-    fmul(src1, src2, fmul_result, fmul_ovf);
-    fdiv(src1, src2, fdiv_result, fdiv_ovf);
+    fadd FADD(src1, src2, fadd_result, fadd_ovf);
+    fsub FSUB(src1, src2, fsub_result, fsub_ovf);
+    fmul FMUL(src1, src2, fmul_result, fmul_ovf);
+    fdiv FDIV(src1, src2, fdiv_result, fdiv_ovf);
     
     assign result = inst.fadd ? fadd_result :
                     inst.fsub ? fsub_result :
