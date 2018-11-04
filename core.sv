@@ -58,6 +58,17 @@ interface instif;
   reg or_;
   reg and_;
   
+  reg fadd;
+  reg fsub;
+  reg fmul;
+  reg fdiv;
+  reg fsw;
+  reg flw;
+  reg feq;
+  reg flt;
+  reg fle;
+  
+  
   wire inval;
   assign inval = ~(lui | auipc | jal | jalr | beq | bne | blt | bge | bltu | bgeu | lb |
             lh | lw | lbu | lhu | sb | sh | sw | addi | slti | sltiu | xori | ori | 
@@ -156,6 +167,7 @@ module decoder
         inst.sra  <= (opcode == 7'b0110011) && (funct3 == 3'b101) && (funct7 == 7'b0000000);
         inst.or_  <= (opcode == 7'b0110011) && (funct3 == 3'b110);
         inst.and_ <= (opcode == 7'b0110011) && (funct3 == 3'b111);
+        
     end
 endmodule
 
