@@ -72,6 +72,8 @@ module map(
     wire [7:0]b_data;
     assign b_data =  c_din[31:24];
     
+    
+    
     assign led          = c_write_enable && (c_addr == led_addr) ? b_data : led_reg;
     assign addr         = is_io ? addr_reg : c_addr;
     assign write_enable = is_io ? write_enable_reg : c_write_enable;
@@ -116,7 +118,7 @@ module map(
             end else if (state == map_uart_receive) begin
                 r_valid <= 1'b0;
                 if (rx_done) begin
-                    c_dout_reg <= r_data;
+                    c_dout_reg <= {r_data, 24'b0};
                     state <= map_uart_wait;
                     done <= 1'b1;
                 end

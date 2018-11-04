@@ -161,7 +161,7 @@ endmodule
 
 
 typedef enum reg [2:0] {
-    s_wait, s_inst_fetch, s_inst_decode, s_inst_write, s_inst_exec, s_inst_inval
+    s_wait, s_inst_fetch, s_inst_decode, s_inst_write, s_inst_exec, s_inst_inval, s_inst_mem
 } s_inst;
 
 typedef enum reg [4:0] {
@@ -316,6 +316,8 @@ module core
         if (~rstn) begin 
         end else if (state == s_inst_exec) begin
             load_r <= inst.lb | inst.lh | inst.lw | inst.lbu | inst.lhu;
+        end else begin
+            load_r <= 1'b0;
         end
     end
     
@@ -385,15 +387,18 @@ module core
                 data_we <= 4'b0011;
             end else if (inst.sw) begin
                 din <= src2;
-                data_we <= 4'b1111;      
-            end else if (inst.lb) begin
+                data_we <= 4'b1111;
+            end
+        end else if (state == s_inst_mem) begin    
+            data_we <= 4'b0000;
+            if (inst.lb) begin
                 load_result <= {{25{dout[7]}}, dout[6:0]};  
             end else if (inst.lh) begin
-                load_result <= {{17{dout[15]}}, dout[4:0]};
+                load_result <= {{17{dout[15]}}, dout[14:0]};
             end else if (inst.lw) begin
                 load_result <= dout;
             end
-        end else if (state == s_inst_fetch) begin
+        end else if (state != s_inst_exec) begin
             data_we <= 4'b0000;
         end
     end
@@ -416,16 +421,19 @@ module core
             end else if (state == s_inst_decode) begin
                 state <= s_inst_exec;
             end else if (state == s_inst_exec) begin
+                if (inst.lb | inst.lh | inst.lw | inst.sb | inst.sh | inst.sw) begin
+                    state <= s_inst_mem;
+                end else begin
+                    state <= s_inst_write;
+                end
+            end else if (state == s_inst_mem) begin
                 if (wait_for_memory) begin
                     if (memory_done) begin
                         wait_for_memory <= 1'b0;
                         state <= s_inst_write;
                     end
-                end else if (inst.lb | inst.lh | inst.lw) begin
-                        wait_for_memory <= 1'b1;
-                        state <= s_inst_exec;         
                 end else begin
-                    state <= s_inst_write;
+                    wait_for_memory <= 1'b1;
                 end
             end else if (state == s_inst_write) begin
                 state <= s_inst_fetch;
