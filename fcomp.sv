@@ -56,6 +56,6 @@ module fle(
     wire z
 );
     wire t;
-    flt(x, y, t);
-    assign z = ~t;
+    flt FLT(x, y, t);
+    assign z = t;
 endmodule

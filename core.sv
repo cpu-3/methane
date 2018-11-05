@@ -73,7 +73,7 @@ interface instif;
   assign inval = ~(lui | auipc | jal | jalr | beq | bne | blt | bge | bltu | bgeu | lb |
             lh | lw | lbu | lhu | sb | sh | sw | addi | slti | sltiu | xori | ori | 
             andi | slli | srli | srai | add | sub | sll | slt | sltu | xor_ | srl |
-            sra | or_ | and_); 
+            sra | or_ | and_ | fadd | fsub | fmul | fdiv | fsw | flw | feq | flt | fle); 
 endinterface
 
 module decoder
@@ -98,14 +98,15 @@ module decoder
     wire [6:0] funct7;
     assign funct7 = inst_code[31:25];
 
-    assign r_type = (inst_code[6:5] == 2'b01) && (inst_code[4:2] == 3'b100);
+    assign r_type = ((inst_code[6:5] == 2'b01) || inst_code[6:5] == 2'b10) && (inst_code[4:2] == 3'b100);
     wire i_type;
     assign i_type = ((inst_code[6:5] == 2'b00) &&
                         ((inst_code[4:2] == 3'b000) ||
-                         (inst_code[4:2] == 3'b100))) ||
+                         (inst_code[4:2] == 3'b100) ||
+                         (inst_code[4:2] == 3'b001)))||
                     ((inst_code[6:5] == 2'b11) && (inst_code[4:2] == 3'b001));
     wire s_type;
-    assign s_type = (inst_code[6:5] == 2'b01) && (inst_code[4:2] == 3'b000);
+    assign s_type = (inst_code[6:5] == 2'b01) && ((inst_code[4:2] == 3'b000) || (inst_code[4:2] == 3'b001));
     wire b_type;
     assign b_type = (inst_code[6:5] == 2'b11) && (inst_code[4:2] == 3'b000);
     wire u_type;
@@ -250,7 +251,7 @@ module fregister
     
     generate
         genvar i;
-        for (i = 1; i < 32; i = i + 1) begin
+        for (i = 0; i < 32; i = i + 1) begin
             always @(posedge clk) begin
                 if (~rstn) begin
                     fregs[i] <= 32'd0;
@@ -503,7 +504,7 @@ module core
             end else if (state == s_inst_decode) begin
                 state <= s_inst_exec;
             end else if (state == s_inst_exec) begin
-                if (inst.lb | inst.lh | inst.lw | inst.sb | inst.sh | inst.sw) begin
+                if (inst.lb | inst.lh | inst.lw | inst.sb | inst.sh | inst.sw | inst.flw | inst.fsw) begin
                     state <= s_inst_mem;
                 end else begin
                     state <= s_inst_write;

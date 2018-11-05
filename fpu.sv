@@ -47,6 +47,10 @@ module fpu(
     fmul FMUL(src1, src2, fmul_result, fmul_ovf);
     fdiv FDIV(src1, src2, fdiv_result, fdiv_ovf);
     
+    feq FEQ(src1, src2, feq_result);
+    flt FLT(src1, src2, flt_result);
+    fle FLE(src1, src2, fle_result);
+    
     assign result = inst.fadd ? fadd_result :
                     inst.fsub ? fsub_result :
                     inst.fmul ? fmul_result :
