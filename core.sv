@@ -68,12 +68,15 @@ interface instif;
   reg flt;
   reg fle;
   
+  reg fsgnj;
+  reg fsgnjn;
   
   wire inval;
   assign inval = ~(lui | auipc | jal | jalr | beq | bne | blt | bge | bltu | bgeu | lb |
             lh | lw | lbu | lhu | sb | sh | sw | addi | slti | sltiu | xori | ori | 
             andi | slli | srli | srai | add | sub | sll | slt | sltu | xor_ | srl |
-            sra | or_ | and_ | fadd | fsub | fmul | fdiv | fsw | flw | feq | flt | fle); 
+            sra | or_ | and_ | fadd | fsub | fmul | fdiv | fsw | flw | feq | flt | fle |
+            fsgnj | fsgnjn); 
 endinterface
 
 module decoder
@@ -176,6 +179,8 @@ module decoder
         inst.feq  <= (opcode == 7'b1010011) && (funct7 == 7'b1010000) && (funct3 == 3'b010);
         inst.flt  <= (opcode == 7'b1010011) && (funct7 == 7'b1010000) && (funct3 == 3'b001);
         inst.fle  <= (opcode == 7'b1010011) && (funct7 == 7'b1010000) && (funct3 == 3'b000);
+        inst.fsgnj   <= (opcode == 7'b1010011) && (funct7 == 7'b0010000) && (funct3 == 3'b000);
+        inst.fsgnjn  <= (opcode == 7'b1010011) && (funct7 == 7'b0010000) && (funct3 == 3'b001);
         
         inst.fsw <= opcode == 7'b0100111;
         inst.flw <= opcode == 7'b0000111;
@@ -415,7 +420,7 @@ module core
         end else if (inst.feq | inst.fle | inst.flt) begin
             result <= fpu_result;
             rd_enable <= 1'b1;
-        end else if (inst.fadd | inst.fsub | inst.fmul | inst.fdiv) begin
+        end else if (inst.fadd | inst.fsub | inst.fmul | inst.fdiv | inst.fsgnj | inst.fsgnjn) begin
             result <= fpu_result;
             frd_enable <= 1'b1;
         end else if (inst.flw) begin
@@ -488,18 +493,19 @@ module core
     
     always @(posedge clk) begin
         if (~rstn) begin
-            clock_counter <= 32'd0;
+            clock_counter <= 34'd0;
             state <= s_wait;
-            debug_status_register <= 32'b0;
+            debug_status_register <= 34'b0;
             instr_we <= 1'd0;
             wait_for_memory <= 1'b0;
         end else begin
-            clock_counter <= clock_counter + 1;
+           
             if (inst.inval) begin
                 state <= s_inst_inval;
             end else if (state == s_wait) begin
                 state <= s_inst_fetch;
             end else if (state == s_inst_fetch) begin
+                 clock_counter <= clock_counter + 34'd1;
                 state <= s_inst_decode;
             end else if (state == s_inst_decode) begin
                 state <= s_inst_exec;

@@ -43,6 +43,7 @@ module flt(
     assign {s2,e2,m2} = y;
     
     assign z = (s1 == 1'b1) && (s2 == 1'b0) ? 1'b1 :
+               (s1 == 1'b0) && (s2 == 1'b1) ? 1'b0 :
                (s1 == 1'b0) && (e1 < e2) ? 1'b1 :
                (s1 == 1'b0) && (e1 == e2) && (m1 < m2) ? 1'b1 :
                (s1 == 1'b1) && (e1 > e2) ? 1'b1 :
@@ -56,6 +57,6 @@ module fle(
     wire z
 );
     wire t;
-    flt FLT(x, y, t);
-    assign z = t;
+    flt FLT(y, x, t);
+    assign z = ~t;
 endmodule

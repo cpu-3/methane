@@ -37,6 +37,8 @@ module fpu(
     wire fmul_ovf;
     wire [31:0]fdiv_result;
     wire fdiv_ovf;
+    wire [31:0]fsgnj_result;
+    wire [31:0]fsgnjn_result;
     
     wire feq_result;
     wire flt_result;
@@ -51,10 +53,15 @@ module fpu(
     flt FLT(src1, src2, flt_result);
     fle FLE(src1, src2, fle_result);
     
+    fsgnj FSGNJ(src1, src2, fsgnj_result);
+    fsgnjn FSGNJN(src1, src2, fsgnjn_result);
+    
     assign result = inst.fadd ? fadd_result :
                     inst.fsub ? fsub_result :
                     inst.fmul ? fmul_result :
                     inst.fdiv ? fdiv_result :
+                    inst.fsgnj ? fsgnj_result :
+                    inst.fsgnjn ? fsgnjn_result :
                     inst.feq ? {31'b0, feq_result} :
                     inst.flt ? {31'b0, flt_result} :
                     inst.fle ? {31'b0, fle_result} :
