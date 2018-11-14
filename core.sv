@@ -337,6 +337,8 @@ module core
 
 
     reg [33:0] clock_counter = 34'd0;
+    (* mark_debug = "true" *) wire [33:0] clock_counter_debug;
+    assign clock_counter_debug = clock_counter;
     reg [31:0] debug_status_register = 32'd0;
     reg [31:0] instruction = 32'd0;
 
@@ -478,9 +480,10 @@ module core
         end else if (state == s_inst_mem) begin    
             data_we <= 4'b0000;
             if (inst.lb) begin
-                load_result <= {{25{dout[7]}}, dout[6:0]};  
+                //load_result <= {{25{dout[7]}}, dout[6:0]};  
+                load_result <= {24'd0, dout[7:0]};  
             end else if (inst.lh) begin
-                load_result <= {{17{dout[15]}}, dout[14:0]};
+                load_result <= {16'd0, dout[15:0]};
             end else if (inst.lw) begin
                 load_result <= dout;
             end else if (inst.flw) begin
