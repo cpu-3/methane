@@ -339,6 +339,8 @@ module core
     reg [33:0] clock_counter = 34'd0;
     (* mark_debug = "true" *) wire [33:0] clock_counter_debug;
     assign clock_counter_debug = clock_counter;
+    (* mark_debug = "true" *) wire [31:0] pc_debug;
+    assign pc_debug = pc;
     reg [31:0] debug_status_register = 32'd0;
     reg [31:0] instruction = 32'd0;
 
