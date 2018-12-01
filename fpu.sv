@@ -37,6 +37,8 @@ module fpu(
     wire fmul_ovf;
     wire [31:0]fdiv_result;
     wire fdiv_ovf;
+    wire [31:0]fsqrt_result;
+    wire fsqrt_ovf;
     wire [31:0]fsgnj_result;
     wire [31:0]fsgnjn_result;
     
